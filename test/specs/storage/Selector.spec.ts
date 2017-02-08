@@ -22,7 +22,7 @@ interface Fixture {
   folded?: boolean
 }
 
-export default describe('SelectMeta test', () => {
+export default describe('Selector test', () => {
   let db: lf.Database
   let table: lf.schema.Table
   let version = 1
@@ -31,13 +31,13 @@ export default describe('SelectMeta test', () => {
   let storeData: any[]
 
   beforeEach(function * () {
-    const schemaBuilder = lf.schema.create('SelectMetaTest', version ++)
+    const schemaBuilder = lf.schema.create('SelectorTest', version ++)
     const db$ = lfFactory(schemaBuilder, {
       storeType: lf.schema.DataStoreType.MEMORY,
       enableInspector: false
     })
 
-    const tableBuilder = schemaBuilder.createTable('TestSelectMetadata')
+    const tableBuilder = schemaBuilder.createTable('TestSelectordata')
     tableBuilder.addColumn('_id', lf.Type.STRING)
       .addColumn('name', lf.Type.STRING)
       .addColumn('time', lf.Type.NUMBER)
@@ -46,7 +46,7 @@ export default describe('SelectMeta test', () => {
 
     yield db$.do(r => {
       db = r
-      table = db.getSchema().table('TestSelectMetadata')
+      table = db.getSchema().table('TestSelectordata')
     })
 
     const rows: lf.Row[] = []
@@ -93,6 +93,7 @@ export default describe('SelectMeta test', () => {
   })
 
   afterEach(() => {
+    Selector.queryMap.clear()
     db.close()
   })
 
@@ -103,7 +104,7 @@ export default describe('SelectMeta test', () => {
 
   it('should able to convert selector to sql', () => {
     const selector = new Selector<Fixture>(db, db.select().from(table), tableShape)
-    expect(selector.toString()).to.equal('SELECT * FROM TestSelectMetadata;')
+    expect(selector.toString()).to.equal('SELECT * FROM TestSelectordata;')
   })
 
   it('should getValues successfully via table shape', function* () {
@@ -162,7 +163,7 @@ export default describe('SelectMeta test', () => {
 
     const sql = selector.toString()
 
-    expect(sql).to.equal('SELECT * FROM TestSelectMetadata WHERE TestSelectMetadata.time > 50;')
+    expect(sql).to.equal('SELECT * FROM TestSelectordata WHERE TestSelectordata.time > 50;')
   })
 
   it('should get correct results with orderBy', function* () {
@@ -191,7 +192,7 @@ export default describe('SelectMeta test', () => {
       })
   })
 
-  describe('SelectMeta.prototype.changes', () => {
+  describe('Selector.prototype.changes', () => {
     it('observe should ok', done => {
       const selector = new Selector(db,
         db.select().from(table),
@@ -512,7 +513,7 @@ export default describe('SelectMeta test', () => {
     })
   })
 
-  describe('SelectMeta.prototype.combine', () => {
+  describe('Selector.prototype.combine', () => {
     let selector1: Selector<any>
     let selector2: Selector<any>
     let selector3: Selector<any>
@@ -555,7 +556,7 @@ export default describe('SelectMeta test', () => {
       dist = select1And2.combine(selector3, selector4)
     })
 
-    it('should return SelectMeta', () => {
+    it('should return Selector', () => {
       expect(dist).instanceof(Selector)
     })
 
@@ -576,7 +577,7 @@ export default describe('SelectMeta test', () => {
       })
     })
 
-    it('changes should observe all values from original SelectMeta', function* () {
+    it('changes should observe all values from original Selector', function* () {
       const changes$ = dist.changes()
         .publish()
         .refCount()
@@ -687,7 +688,7 @@ export default describe('SelectMeta test', () => {
         })
     })
 
-    it('should throw when combine two different SelectMetas', () => {
+    it('should throw when combine two different Selectors', () => {
       const different = new Selector(db, db.select(table['_id']).from(table), tableShape)
       const fn = () => dist.combine(different)
       expect(fn).to.throw(TOKEN_INVALID_ERR().message)
