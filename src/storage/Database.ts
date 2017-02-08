@@ -511,6 +511,8 @@ export class Database {
       disposeQueue.push(deleteQuery)
     })
 
+    Selector.queryMap.clear()
+
     return Promise.all(disposeQueue)
       .then(() => {
         this.hooks.forEach(tableHookDef => {

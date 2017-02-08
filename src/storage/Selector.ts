@@ -26,6 +26,8 @@ export interface OrderInfo {
 }
 
 export class Selector <T> {
+  static queryMap = new Map<string, Observable<any>>()
+
   static factory<U>(... metaDatas: Selector<U>[]) {
     const originalToken = metaDatas[0]
     const fakeQuery = { toSql: identity }
@@ -113,35 +115,22 @@ export class Selector <T> {
       const { pk, mainTable } = this.shape
       this.change$ = this.buildPrefetchingObserve()
         .switchMap(pks => {
-          return Observable.create((observer: Observer<T[]>) => {
-            const listener = () => {
-              this.getValue(pks)
-                .then(r => observer.next(r as T[]))
-                .catch(e => observer.error(e))
-            }
-            listener()
-            const $in = mainTable[pk.name].in(pks)
-            predicate = predicate ? lf.op.and($in, predicate) : $in
-            const query = this.query
-              .where(predicate)
-            db.observe(query, listener)
-            return () => this.db.unobserve(query, listener)
-          })
+          const $in = mainTable[pk.name].in(pks)
+          predicate = predicate ? lf.op.and($in, predicate) : $in
+          const query = this.query
+            .where(predicate)
+          return this.observeQuery(query, pks)
         })
     } else {
-      this.change$ = Observable.create((observer: Observer<T[]>) => {
-        const listener = () => {
-          this.getValue()
-            .then(r => observer.next(r as T[]))
-            .catch(e => observer.error(e))
-        }
+      this.change$ = Observable.create((observer: Observer<any>) => {
+        // put this in Observable to prevent it exec in constructor
+        // which would cause Selector.factor error
         const query = predicate ? this.query
           .where(predicate) : this.query
-        listener()
-        db.observe(query, listener)
-
-        return () => this.db.unobserve(query, listener)
+        observer.next(this.observeQuery(query))
+        observer.complete()
       })
+        .switch()
     }
     this.select = lselect.toSql()
   }
@@ -230,5 +219,27 @@ export class Selector <T> {
       this.db.observe(rangeQuery, listener)
       return () => this.db.unobserve(rangeQuery, listener)
     })
+  }
+
+  private observeQuery(query: lf.query.Select, pks?: (string | number)[]) {
+    const queryString = query.toSql()
+    if (Selector.queryMap.has(queryString)) {
+      return Selector.queryMap.get(queryString)
+    }
+    const observable = Observable.create((observer: Observer<any>) => {
+      const listener = () => {
+        this.getValue(pks)
+          .then(r => observer.next(r as T[]))
+          .catch(e => observer.error(e))
+      }
+      listener()
+      this.db.observe(query, listener)
+      return () => this.db.unobserve(query, listener)
+    })
+      .publish()
+      .refCount()
+
+    Selector.queryMap.set(queryString, observable)
+    return observable
   }
 }
