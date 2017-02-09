@@ -7,6 +7,7 @@ export default describe('PredicateProvider test', () => {
   const dataLength = 1000
   let db: lf.Database
   let table: lf.schema.Table
+  let otherTable: lf.schema.Table
   let version = 1
 
   beforeEach(function* () {
@@ -24,10 +25,17 @@ export default describe('PredicateProvider test', () => {
       .addColumn('nullable', lf.Type.BOOLEAN)
       .addPrimaryKey(['_id'])
       .addNullable(['nullable'])
+
+    const otherTableBuilder = schemaBuilder.createTable('OtherTestPredicateProvider')
+    otherTableBuilder.addColumn('_id', lf.Type.STRING)
+      .addColumn('list', lf.Type.OBJECT)
+      .addPrimaryKey(['_id'])
     db = yield db$.do(r => {
       table = r.getSchema().table('TestPredicateProvider')
+      otherTable = r.getSchema().table('OtherTestPredicateProvider')
     })
     const rows: lf.Row[] = []
+    const otherRows: lf.Row[] = []
     for (let i = 0; i < dataLength; i ++) {
       rows.push(table.createRow({
         _id: `_id:${i}`,
@@ -37,8 +45,15 @@ export default describe('PredicateProvider test', () => {
         times: [i - 1, i , i + 1].map(r => `times: ${r}`).join('|') ,
         nullable: i >= 300 ? null : false
       }))
+      otherRows.push(otherTable.createRow({
+        _id: `_id:other:${i}`,
+        list: [`_id:${i - 1}`, `_id:${i}`, `_id:${i + 1}` ]
+      }))
     }
-    yield db.insert().into(table).values(rows).exec()
+    yield [
+      db.insert().into(table).values(rows).exec(),
+      db.insert().into(otherTable).values(otherRows).exec()
+    ]
   })
 
   describe('PredicateProvider#getPredicate', () => {
@@ -198,7 +213,7 @@ export default describe('PredicateProvider test', () => {
       result.forEach((r: any) => expect(r['time1'] > 0 && r['time1'] <= 20).to.be.true)
     })
 
-    it('$has should ok', function* () {
+    it('$has literal value should ok', function* () {
       const predicate = new PredicateProvider(table, {
         times: {
           $has: 'times: 10'
@@ -214,6 +229,24 @@ export default describe('PredicateProvider test', () => {
       result.forEach((r: any) => {
         expect(r.times.match(/times: 10\b/)).to.not.be.null
       })
+    })
+
+    it.only('$has column should ok', function () {
+      console.log(1111)
+      const predicate = new PredicateProvider(otherTable, {
+        list: {
+          $has: table['_id']
+        }
+      }).getPredicate()
+
+      console.log(3333, predicate)
+
+      // const result = yield db.select()
+      //   .from(otherTable)
+      //   .where(predicate)
+      //   .bind(['_id:20', '_id:21'])
+      //   .exec()
+      // console.log(result)
     })
 
     it('$in should ok', function* () {

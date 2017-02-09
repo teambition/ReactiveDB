@@ -58,7 +58,7 @@ const predicateFactory = {
     return column.between(values[0], values[1])
   },
 
-  $has(column: lf.schema.Column, value: string): lf.Predicate {
+  $has(column: lf.schema.Column, value: string | lf.schema.Column): lf.Predicate {
     return column.match(new RegExp(`(${value}\\b)`))
   },
 
@@ -90,11 +90,19 @@ const compoundPredicateFactory = {
 }
 
 export class PredicateProvider {
+  binderInfo: {
+    key: string
+    column: lf.schema.Column
+  }[] = []
+
+  private binderValues: any[] = []
 
   constructor(
     private table: lf.schema.Table,
     private meta: PredicateDescription
-  ) { }
+  ) {
+    this.checkBinder(meta)
+  }
 
   getPredicate(): lf.Predicate {
     const predicates = this.normalizeMeta(this.meta)
@@ -107,6 +115,20 @@ export class PredicateProvider {
     } else {
       return null
     }
+  }
+
+  bind(params: any[]) {
+    this.binderValues = params
+  }
+
+  private checkBinder(meta: PredicateDescription) {
+    forEach(meta, (val, key) => {
+      if (val instanceof (lf.schema as any).BaseColumn) {
+        this.binderInfo.push({ key, column: val as lf.schema.Column })
+      } else if (this.checkPredicate(val)) {
+        this.checkBinder(val as PredicateDescription)
+      }
+    })
   }
 
   private normalizeMeta(meta: PredicateDescription, column?: lf.schema.Column) {
