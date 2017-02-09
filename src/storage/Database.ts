@@ -3,6 +3,7 @@ import { Observable } from 'rxjs/Observable'
 import * as lf from 'lovefield'
 import { lfFactory } from './lovefield'
 import { RDBType, Association } from './DataType'
+import * as Graphify from './Graphify'
 import { Selector } from './Selector'
 import { QueryToken } from './QueryToken'
 import { PredicateDescription, PredicateProvider } from './PredicateProvider'
@@ -890,23 +891,18 @@ export class Database {
           const schema = this.schemaMetaData.get(tableName)
           const hiddenName = `${Database.__HIDDEN__}${field}`
           const hiddenCol = currentTable[hiddenName]
-          const fieldName = `${contextName}__${field}`
+          const fieldName = Graphify.nestFieldName(contextName, field)
           const col = hiddenCol ? hiddenCol.as(fieldName) : column.as(fieldName)
 
           columns.push(col)
           allFields[field] = true
 
-          const matcher: ShapeMatcher = {
-            column: fieldName,
-            id: !!schema[field].primaryKey
-          }
-
-          if (schema[field].type === RDBType.LITERAL_ARRAY) {
-            matcher.type = 'LiteralArray'
-          }
-
           if (!definition[field]) {
-            definition[field] = matcher
+            definition[field] = Graphify.definition(
+              fieldName,
+              !!schema[field].primaryKey,
+              schema[field].type
+            )
           } else {
             throw ALIAS_CONFLICT_ERR(field, tableName)
           }
