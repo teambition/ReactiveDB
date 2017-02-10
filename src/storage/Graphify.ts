@@ -19,18 +19,6 @@ export default function<T>(rows: any[], definition: Object) {
 }
 
 /**
- * NestHydrationJS:
- *
- * Nesting is achieved by using a underscore (_).
- * A x to one relation is defined by a single underscore and
- * a x to many relation is defined by preceeding properties of
- * the many object with a 2nd underscore.
- */
-export function nestFieldName(name: string, subname: string): string {
-  return `${name}__${subname}`
-}
-
-/**
  * Specify a part of the definition object that is
  * to be fed to nestJS.nest function.
  */

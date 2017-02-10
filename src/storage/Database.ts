@@ -891,7 +891,7 @@ export class Database {
           const schema = this.schemaMetaData.get(tableName)
           const hiddenName = `${Database.__HIDDEN__}${field}`
           const hiddenCol = currentTable[hiddenName]
-          const fieldName = Graphify.nestFieldName(contextName, field)
+          const fieldName = `${contextName}__${field}`
           const col = hiddenCol ? hiddenCol.as(fieldName) : column.as(fieldName)
 
           columns.push(col)
