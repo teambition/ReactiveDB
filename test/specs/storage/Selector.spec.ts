@@ -595,7 +595,7 @@ export default describe('Selector test', () => {
     it('changes should observe all values from original SelectMeta', function* () {
       const changes$ = dist.changes()
 
-      changes$.subscribe()
+      subscription = changes$.subscribe()
 
       const update1 = 'test update name 1'
       const update2 = 'test update name 2'
@@ -827,7 +827,7 @@ export default describe('Selector test', () => {
     it('changes should observe all values from original Selector', function* () {
       const changes$ = dist.changes()
 
-      changes$.subscribe()
+      subscription = changes$.subscribe()
 
       const update1 = 'test update name 1'
       const update2 = 'test update name 2'
