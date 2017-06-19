@@ -34,7 +34,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.0.0",
-    "@types/node": "^7.0.18",
+    "@types/node": "^8.0.0",
     "@types/sinon": "^2.2.2",
     "@types/sinon-chai": "^2.7.27",
     "awesome-typescript-loader": "^3.1.3",
