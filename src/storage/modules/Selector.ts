@@ -201,12 +201,19 @@ export class Selector <T> {
 
   concat(... selectors: Selector<T>[]): Selector<T> {
     const orderStr = Selector.stringifyOrder(this.orderDescriptions!)
-    const equal = selectors.every(m =>
-      m.select === this.select &&
-      m.predicateProvider!.toString() === this.predicateProvider!.toString() &&
-      Selector.stringifyOrder(m.orderDescriptions!) === orderStr &&
-      m.mapFn.toString() === this.mapFn.toString()
-    )
+    const equal = selectors.every(m => {
+      const hasEqualPredProvider =
+        m.predicateProvider == null && this.predicateProvider == null
+        || (
+          m.predicateProvider && this.predicateProvider
+          && m.predicateProvider.toString() === this.predicateProvider.toString()
+        )
+
+      return !!hasEqualPredProvider
+        && m.select === this.select
+        && Selector.stringifyOrder(m.orderDescriptions!) === orderStr
+        && m.mapFn.toString() === this.mapFn.toString()
+    })
     assert(equal, Exception.TokenConcatFailed())
 
     return Selector.concatFactory(this, ...selectors)
@@ -236,19 +243,27 @@ export class Selector <T> {
   }
 
   private getQuery(additional?: lf.Predicate): lf.query.Select {
-    if (this.predicateBuildErr && !additional) {
-      return this.query
+    if (this.predicateBuildErr) {
+      return additional ? this.query.where(additional) : this.query
     }
-    // !this.predicateBuildErr || additional
+    // !this.predicateBuildErr
+
     const preds: lf.Predicate[] = []
-    if (this.predicateProvider && !this.predicateBuildErr) {
+    if (this.predicateProvider) {
       preds.push(this.predicateProvider.getPredicate()!)
     }
     if (additional) {
       preds.push(additional)
     }
-    const pred = lf.op.and(...preds)
-    return this.query.where(pred)
+
+    switch (preds.length) {
+      case 0:
+        return this.query
+      case 1:
+        return this.query.where(preds[0])
+      default:
+        return this.query.where(lf.op.and(...preds))
+    }
   }
 
   private removeKey(data: any[], key: string) {

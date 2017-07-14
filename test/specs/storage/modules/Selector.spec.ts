@@ -153,7 +153,7 @@ export default describe('Selector test', () => {
 
     const sql = selector.toString()
 
-    expect(sql).to.equal('SELECT * FROM TestSelectMetadata WHERE ((TestSelectMetadata.time > 50));')
+    expect(sql).to.equal('SELECT * FROM TestSelectMetadata WHERE (TestSelectMetadata.time > 50);')
   })
 
   it('should get correct results with orderBy', function* () {
@@ -920,6 +920,26 @@ export default describe('Selector test', () => {
       yield changes$.take(1)
         .subscribeOn(Scheduler.async)
         .do(r => expect(r[75].name).equal(update3))
+    })
+
+    it('concat selector should ok when neither selectors have predicateProvider', function* () {
+      selector1 = new Selector(db,
+        db.select().from(table),
+        tableShape,
+        null,
+        20, 0
+      )
+      selector2 = new Selector(db,
+        db.select().from(table),
+        tableShape,
+        null,
+        20, 20
+      )
+      const result = yield selector1.concat(selector2).values()
+      expect(result).to.have.lengthOf(40)
+      result.forEach((r: any, index: number) => {
+        expect(r).to.deep.equal(storeData[index])
+      })
     })
 
     it('concat selector should ok with OrderDescription', function* () {
